@@ -1,0 +1,4 @@
+Integrate into a vim plugin.
+More unit tests.
+Deal with code syntax inside strings and comments (may fool my parsing)
+Comment the code more
