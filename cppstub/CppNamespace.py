@@ -21,8 +21,8 @@ class CppNamespace(object):
     def parse_header(self, string):
         self.code = string
         namespace_re = re.compile("namespace\s*(?P<namespace>\w*)\s*\{")
-        class_re = re.compile("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w]+)\s*\>\s*)?class\s+(?P<class_name>\w+)(?:\s*:\s*(?P<inherited_classes>[:\w,\s]+))?\s*\{")
-        method_re = re.compile("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w]+)\s*\>)?(?:(?P<static>static)[ \t\f\v]*)?(?:(?P<method_const_return_type>const)[ \t\f\v]*)?(?P<method_return_type>[<>^:\w&*\s]+?[&*\s]+)(?P<method_name>\w+[,()\s\w~*+=/*^!<>\[\]|&%-]*)\s*\((?P<method_arguments>(?:[\w=\"\'.&\s*:]+[\[\]\w]+\s*,?\s*)*)\)\s*(?P<const>const)?\s*(?P<implemented>{)?")
+        class_re = re.compile("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w]+)\s*\>\s*)?(?P<class_or_struct>class|struct)\s+(?P<class_name>\w+)(?:\s*:\s*(?P<inherited_classes>[:\w,\s]+))?\s*\{")
+        method_re = re.compile("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w]+)\s*\>)?(?:(?P<static>static)[ \t\f\v]*)?(?:(?P<method_const_return_type>const)[ \t\f\v]*)?(?P<method_return_type>[<>^:\w&*\s]+?[&*\s]+)(?P<method_name>\w+[,()\s\w~*+=/*^!<>\[\]|&%-]*)\s*\((?P<method_arguments>(?:[\w=\"\'.&\s*:\[\]]+\s*,?\s*)*)\)\s*(?P<const>const)?\s*(?P<implemented>{)?")
         while True:
             namespace_match = namespace_re.search(string)
             if namespace_match is None:
@@ -40,7 +40,10 @@ class CppNamespace(object):
             class_match = class_re.search(string)
             if class_match is None:
                 break
-
+            class_or_struct = class_match.group("class_or_struct")
+            struct = False
+            if class_or_struct == "struct":
+                struct = True
             class_name = class_match.group("class_name")
             inherited_classes = []
             if class_match.group("inherited_classes"):
@@ -48,7 +51,7 @@ class CppNamespace(object):
             start = class_match.end() - 1
             end, output = parse_brackets(string[start:])
             string = string[:class_match.start()] + string[start:][end:]
-            cpp_class = CppClass(class_name, inherited_classes, self)
+            cpp_class = CppClass(class_name, inherited_classes, struct, self)
             cpp_class.parse_header(output)
             if class_match.group("template_type") is not None:
                 cpp_class.templated = True

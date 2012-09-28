@@ -5,8 +5,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class CppClass(object):
-    def __init__(self, name, inherited_classes = [], parent = None):
+    def __init__(self, name, inherited_classes = [], struct = False, parent = None):
         self.name = name
+        self.struct = struct
         self.methods = {"public":[],"private":[],"protected":[], "unknown":[]}
         self.inherited_classes = inherited_classes
         self.code = ""
@@ -25,9 +26,9 @@ class CppClass(object):
         access = "private"
         string_split = re.split("((?:public|private|protected)\s*:)+", string)
         access_re = re.compile("(?:(public|private|protected)\s*:)+")
-        class_re = re.compile("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w+])\s*\>)?class\s+(?P<class_name>\w+)(?:\s*:\s*(?P<inherited_classes>[:\w,\s]+))?\s*\{")
+        class_re = re.compile("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w+])\s*\>)?(?P<class_or_struct>class|struct)\s+(?P<class_name>\w+)(?:\s*:\s*(?P<inherited_classes>[:\w,\s]+))?\s*\{")
         #regular expression to match class methods in the form <return type> <method_name>(<method_arguments>) [<const>] [<implemented>]
-        method_re = re.compile("(?:(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w]+)\s*\>)|(?:(?P<virtual>virtual)[ \t\f\v]*)|(?:(?P<static>static)[ \t\f\v]*))?(?:(?P<method_const_return_type>const)[ \t\f\v]*)?(?:[ \t\f\v]*(?P<method_return_type>[<>^:\w&* \t\f\v]+?[&*\s]+))(?P<method_name>\w+[,()\s\w~*+=/*^!<>\[\]|&%-]*)\s*\((?P<method_arguments>(?:[\w=\"\'.&\s*:]+[\[\]\w]+\s*,?\s*)*)\)\s*(?P<const>const)?\s*(?P<implemented>{)?")
+        method_re = re.compile("(?:(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w]+)\s*\>)|(?:(?P<virtual>virtual)[ \t\f\v]*)|(?:(?P<static>static)[ \t\f\v]*))?(?:(?P<method_const_return_type>const)[ \t\f\v]*)?(?:[ \t\f\v]*(?P<method_return_type>[<>^:\w&* \t\f\v]+?[&*\s]+))(?P<method_name>\w+[,()\s\w~*+=/*^!<>\[\]|&%-]*)\s*\((?P<method_arguments>(?:[\w=\"\'.&\s*:\[\]]+\s*,?\s*)*)\)\s*(?P<const>const)?\s*(?P<implemented>{)?")
         #regular expression to match special class methods such as constructor and destructor
         special_method_re = re.compile("(?P<method_name>~?" + self.name + ")\s*\((?P<method_arguments>(?:[\w&\s*:]+[\[\]\w]+\s*,?\s*)*)\)\s*(?P<implemented>{)?")
         for string in string_split:
@@ -39,6 +40,10 @@ class CppClass(object):
                 class_match = class_re.search(string)
                 if class_match is None:
                     break
+                class_or_struct = class_match.group("class_or_struct")
+                struct = False
+                if class_or_struct == "struct":
+                    struct = True
                 class_name = class_match.group("class_name")
                 inherited_classes = []
                 if class_match.group("inherited_classes"):
@@ -46,7 +51,7 @@ class CppClass(object):
                 start = class_match.end() - 1
                 end, output = parse_brackets(string[start:])
                 string = string[:class_match.start()] + string[end:]
-                cpp_class = CppClass(class_name, inherited_classes, self)
+                cpp_class = CppClass(class_name, inherited_classes, struct, self)
                 cpp_class.parse_header(output)
                 if class_match.group("template_type") is not None:
                     cpp_class.templated = True
@@ -60,6 +65,9 @@ class CppClass(object):
                 method_return_type = match.group("method_return_type")
                 if method_return_type is not None:
                     method_return_type = method_return_type.strip()
+                # deal with the regular incorrectly matching a constructor
+                if method_return_type == "":
+                    continue
                 method_arguments = []
                 for argument in clean_string(match.group("method_arguments")).split(','):
                     # deal with default arguments
@@ -96,7 +104,11 @@ class CppClass(object):
         output = ""
         if self.templated:
             output += "template <class %s>\n" % self.template_type
-        output += "class " + self.name
+        if self.struct:
+            output += "struct "
+        else:
+            output += "class "
+        output += self.name
         if len(self.inherited_classes) > 0:
             output += " : "
             for inherited_class in self.inherited_classes:
@@ -204,7 +216,11 @@ class CppClass(object):
         return self.implementation()
 
     def find(self, string):
-        class_match = re.search("class\s+" + self.name + "(?:\s*:\s*(?P<inherited_classes>[:\w,\s]+))?\s*\{", string)
+        if self.struct:
+            class_or_struct = "struct"
+        else:
+            class_or_struct = "class"
+        class_match = re.search(class_or_struct + "\s+" + self.name + "(?:\s*:\s*(?P<inherited_classes>[:\w,\s]+))?\s*\{", string)
         if class_match is None:
             raise Exception("Cannot find class")
         else:

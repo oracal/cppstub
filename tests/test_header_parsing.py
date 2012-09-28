@@ -49,10 +49,11 @@ class CppStubHeaderParsingTestSuite(unittest.TestCase):
         self.assertEquals(self.cpp_file.namespaces[0].classes[0].inherited_classes[1], "Test2")
 
     def test_header_parse_constructor_in_class_in_namespace(self):
-        self.cpp_file.parse_header("namespace test{class Test{public:Test();};}")
+        self.cpp_file.parse_header("namespace test{class Test{public:Test(class own_t *sink_);};}")
         self.assertEquals(self.cpp_file.namespaces[0].name, "test")
         self.assertEquals(self.cpp_file.namespaces[0].classes[0].name, "Test")
         self.assertEquals(self.cpp_file.namespaces[0].classes[0].methods["public"][0].name, "Test")
+        self.assertEquals(len(self.cpp_file.namespaces[0].classes[0].methods["public"]), 1)
 
     def test_header_parse_constructor_with_function_in_implementation_in_class_in_namespace(self):
         self.cpp_file.parse_header("namespace test{class Test{public:Test(){function();};};}")
@@ -62,7 +63,7 @@ class CppStubHeaderParsingTestSuite(unittest.TestCase):
         self.assertEquals(len(self.cpp_file.namespaces[0].classes[0].methods["public"]), 1)
 
     #operators split and ordered via http://en.wikipedia.org/wiki/Operators_in_C_and_C%2B%2B
-    def test_header_parse_arithmetic_operators_with_function_in_implementation_in_class_in_namespace(self):
+    def test_header_parse_operators_with_function_in_implementation_in_class_in_namespace(self):
         self.cpp_file.parse_header("namespace test{class Test{public:Test& operator=(const Test& rhs){function();}Test operator+(const Test& rhs) const {function();}Test operator-(const Test& rhs) const {function();}Test operator+() const {function();}Test operator-() const{function();}Test operator*(const Test& rhs) const {function();}Test operator/(const Test& rhs) const {function();}Test operator%(const Test& rhs) const {function();}Test& operator++(){function();}Test operator++(int){function();}Test& operator--(){function();}Test operator--(int){function();}};}")
         self.assertEquals(self.cpp_file.namespaces[0].name, "test")
         self.assertEquals(self.cpp_file.namespaces[0].classes[0].name, "Test")
