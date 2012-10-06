@@ -98,7 +98,7 @@ class CppNamespace(object):
             cpp_namespace = CppNamespace(namespace_name, self)
             cpp_namespace.parse_cpp(output)
             self.namespaces.append(cpp_namespace)
-        method_matches = re.finditer("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w+])\s*\>\s*)?(?:(?P<method_const_return_type>const)[ \t\f\v]*)?(?P<method_return_type>[<>^:\w&* \t\f\v]+?[&*\s]+)?(?:(?P<class_names>[\w:]+)\s*::\s*)?(?P<method_name>\w+[,()\s\w~*+=/*^!<>\[\]|&%-]*)\s*\((?P<method_arguments>(?:[\w=\"\'.&\s*:]+[\[\]\w]+\s*,?\s*)*)\)\s*(?P<const>const)?\s*(?:{)", string)
+        method_matches = re.finditer("(?:template\s*\<\s*(?:class|typename)\s+(?P<template_type>[\w+])\s*\>\s*)?(?:(?P<method_const_return_type>const)[ \t\f\v]*)?(?P<method_return_type>[<>^:\w&* \t\f\v]+?[&*\s]+)?(?:(?P<class_names>[\w:]+)\s*::\s*)?(?P<method_name>operator\s*[,()\w~*+=/*^!<>\[\]|&%-]*|[,()\w~*+=/*^!<>\[\]|&%-]*)\s*\((?P<method_arguments>[\w=\"\'.&\s*:\[\],]*)\)\s*(?P<const>const)?\s*(?:{)", string)
         for match in method_matches:
             class_names = match.group("class_names")
             method_name = match.group("method_name")
