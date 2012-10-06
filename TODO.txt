@@ -1,4 +1,6 @@
 Integrate into a vim plugin.
+Add more debugging/logging messages.
+Generate stubs using ctags, which obviously is generated from a much more sophisticated c++ parser.
 More unit tests.
 Deal with code syntax inside strings and comments (may fool my parsing)
-Comment the code more
+Comment what is happening in the code more.
